@@ -8,9 +8,6 @@ import (
 
 type H map[string]interface{}
 
-/*
-封装*http.Request和http.Response，简化相关接口的调用
-*/
 type Context struct {
 	// origin objects
 	Writer http.ResponseWriter
@@ -18,13 +15,11 @@ type Context struct {
 	// request info
 	Path   string
 	Method string
+	Params map[string]string
 	// response info
 	StatusCode int
 }
 
-/*
-返回一个Context
-*/
 func newContext(w http.ResponseWriter, req *http.Request) *Context {
 	return &Context{
 		Writer: w,
@@ -32,6 +27,11 @@ func newContext(w http.ResponseWriter, req *http.Request) *Context {
 		Path:   req.URL.Path,
 		Method: req.Method,
 	}
+}
+
+func (c *Context) Param(key string) string {
+	value, _ := c.Params[key]
+	return value
 }
 
 func (c *Context) PostForm(key string) string {
@@ -50,10 +50,6 @@ func (c *Context) Status(code int) {
 func (c *Context) SetHeader(key string, value string) {
 	c.Writer.Header().Set(key, value)
 }
-
-/*
-	构造String、JSON、Data、HTML响应的方法
-*/
 
 func (c *Context) String(code int, format string, values ...interface{}) {
 	c.SetHeader("Content-Type", "text/plain")

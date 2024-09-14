@@ -1,6 +1,9 @@
 package gee
 
-import "strings"
+import (
+	"net/http"
+	"strings"
+)
 
 type router struct {
 	roots    map[string]*node
@@ -27,7 +30,6 @@ func parsePattern(pattern string) []string {
 			}
 		}
 	}
-
 	return parts
 }
 
@@ -53,6 +55,7 @@ func (r *router) getRoute(method string, path string) (*node, map[string]string)
 	}
 
 	n := root.search(searchParts, 0)
+
 	if n != nil {
 		parts := parsePattern(n.pattern)
 		for index, part := range parts {
@@ -66,5 +69,27 @@ func (r *router) getRoute(method string, path string) (*node, map[string]string)
 		}
 		return n, params
 	}
+
 	return nil, nil
+}
+
+func (r *router) getRoutes(method string) []*node {
+	root, ok := r.roots[method]
+	if !ok {
+		return nil
+	}
+	nodes := make([]*node, 0)
+	root.travel(&nodes)
+	return nodes
+}
+
+func (r *router) handle(c *Context) {
+	n, params := r.getRoute(c.Method, c.Path)
+	if n != nil {
+		c.Params = params
+		key := c.Method + "-" + n.pattern
+		r.handlers[key](c)
+	} else {
+		c.String(http.StatusNotFound, "404 NOT FOUND: %s\n", c.Path)
+	}
 }
